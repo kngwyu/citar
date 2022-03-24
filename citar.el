@@ -1160,6 +1160,40 @@ With prefix, rebuild the cache before offering candidates."
        (error "Make sure 'citar-library-paths' is a list of paths"))
      (citar--library-file-action key-entry 'attach)))
 
+(defun citar--add-file-to-library (key)
+  "Add a file to the library for KEY.
+The FILE can be added either from an open buffer, a file, or a
+URL."
+  (let* ((source
+          (char-to-string
+           (read-char-choice
+            "Add file from [b]uffer, [f]ile, or [u]rl? " '(?b ?f ?u))))
+         (extension "pdf") ; FIX derive extension from file
+         (directory (if (cdr citar-library-paths)
+                        (completing-read "Directory: " citar-library-paths)
+                      (car citar-library-paths)))
+         (file-path
+          (expand-file-name (concat key "." extension) directory)))
+    (pcase source
+      ("b"
+       (with-current-buffer (read-buffer-to-switch "Add file buffer: ")
+         (write-file file-path)))
+      ("f"
+       (copy-file
+        (expand-file-name
+         (read-file-name "Add file: " nil nil t)) file-path))
+      ("u"
+       (url-copy-file (read-string "Add file URL: ") file-path)))))
+
+;;;###autoload
+(defun citar-add-file-to-library (key-entry)
+  "Add a file to the library for KEY-ENTRY.
+The FILE can be added either from an open buffer, a file, or a
+URL."
+  (interactive (list (citar-select-ref
+                      :rebuild-cache current-prefix-arg)))
+   (citar--add-file-to-library (car key-entry)))
+
 ;;;###autoload
 (defun citar-run-default-action (keys-entries)
   "Run the default action `citar-default-action' on KEYS-ENTRIES."
